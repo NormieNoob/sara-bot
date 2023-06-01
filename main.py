@@ -71,9 +71,6 @@ client = MongoClient(uri)
 db = client['Sarabot']
 collection = db['user_details']
 
-speech_region = 'eastus'
-azure_speech_api = ''
-
 # 11labs parameters
 CHUNK_SIZE = 1024
 API_URL = "https://api.elevenlabs.io/v1/text-to-speech/21m00Tcm4TlvDq8ikWAM"
