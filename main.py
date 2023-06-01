@@ -72,7 +72,7 @@ db = client['Sarabot']
 collection = db['user_details']
 
 speech_region = 'eastus'
-azure_speech_api = 'f3df0236069541e4a202178a74c11a6d'
+azure_speech_api = ''
 
 # 11labs parameters
 CHUNK_SIZE = 1024
@@ -140,58 +140,12 @@ def voice_handler(update: Update, context: CallbackContext) -> None:
     transcript = openai.Audio.transcribe("whisper-1", audio_file)
     end_time = time.time()  # End time
     readable_string = transcript['text'].encode('utf-16', 'surrogatepass').decode('utf-16')
-    print(readable_string)
-
-    user: User = update.message.from_user
-    user_name = user.first_name
     message = update.message
-    # chat_id = message.chat_id
     message_id = message.message_id
 
     chat_id = update.effective_chat.id
-    send_message(context.bot, chat_id, readable_string, voice_messages, user_name, message_id)
-
-    # # Now you can send 'voice.wav' to Azure Speech to Text API
-    # # Insert Azure Speech to Text code here
-    # # print('flag1')
-    # audio_file = output_file
-
-    # with open(output_file, 'rb') as audio_file:
-    #     audio_data = audio_file.read()
-
-    # # Prepare the request
-    # url = 'https://eastus2.stt.speech.microsoft.com/speech/recognition/conversation/cognitiveservices/v1'
-    # headers = {
-    #     'Ocp-Apim-Subscription-Key': 'b2b4d01536aa469cb8850a69e5ac2b07',
-    #     'Content-Type': 'audio/wav; codecs=audio/pcm; samplerate=44100',
-    #     'Accept': 'application/json',
-    # }
-    # params = {
-    #     'language': 'en-US',
-    #     'format': 'detailed',
-    # }
-    # data = audio_data
-
-    # # Send the request
-    # response = requests.post(url, headers=headers, params=params, data=data)
-
-    # # Parse the response
-    # if response.status_code == 200:
-    #     result = response.json()
-    #     if 'DisplayText' in result:
-    #         print("Recognized: {}".format(result['DisplayText']))
-
-    #         chat_id = update.effective_chat.id
-    #         text_to_speech(context.bot, chat_id, result['DisplayText'], voice_messages)
-
-    #     else:
-    #         print("No speech could be recognized.")
-
-    # else:
-    #     print("Speech Recognition canceled: {}".format(response.status_code))
-    #     print("Error details: {}".format(response.text))
-    #     print("Did you set the speech resource key and region values?")
-
+    user = Users.all_users.get(chat_id)
+    send_message(bot=context.bot, text=update.message.text, global_messages=voice_messages, message_id=message_id, user=user)
     os.remove(output_file)
 
 
