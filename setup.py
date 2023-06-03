@@ -9,7 +9,7 @@ from prompts import get_text_messages, get_voice_messages, starter_prompt, get_s
 from api import xi_labs_api, openai_api
 import openai
 from Users import Users
-from db import db_connection, create_user, get_voice_mode, set_voice_mode, get_user_details
+from db import db_connection, create_user, get_voice_mode, set_voice_mode, get_user_details, get_user_balance
 
 # Global database connection object
 collection = db_connection()
@@ -18,6 +18,7 @@ collection = db_connection()
 logging.basicConfig(filename='Sara_bot_log.txt', format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                     level=logging.INFO)
 logger = logging.getLogger(__name__)
+
 
 def hindi_name(name):
     translator = Translator(service_urls=['translate.google.com'])
@@ -34,11 +35,6 @@ def get_system_prompt(user_name):
 
 def start(update: Update, context: CallbackContext):
     chat_id = update.effective_chat.id
-    firstname = update.effective_chat.first_name
-    user_id = update.effective_user.id
-    username = update.effective_user.username
-    if chat_id not in Users.all_users:
-        user = Users(chat_id=chat_id, user_id=user_id, firstname=firstname, username=username)
     convo_starter, photo_url, consent_text = get_start_messages()
     context.bot.send_message(chat_id=chat_id, text=convo_starter)
     context.bot.send_photo(chat_id=chat_id, photo=photo_url)
@@ -62,7 +58,8 @@ def button_callback(update: Update, context: CallbackContext):
         user.set_consent(True)
         try:
             if collection.count_documents({'_id': chat_id}) == 0:
-                create_user(chat_id=chat_id, user_id=user_id, firstname=firstname, username=username, collection=collection)
+                create_user(chat_id=chat_id, user_id=user_id, firstname=firstname, username=username,
+                            collection=collection)
                 logging.info(f"Added {update.effective_user.first_name} to the database")
         except Exception as e:
             logging.info(f"Could not add {chat_id} - {update.effective_user.first_name} to the database")
@@ -107,7 +104,8 @@ def reply(update: Update, context: CallbackContext, voice_to_text=None):
     if user is not None:
         try:
             if collection.count_documents({'_id': chat_id}) == 0:
-                create_user(chat_id=chat_id, user_id=user_id, firstname=firstname, username=username, collection=collection)
+                create_user(chat_id=chat_id, user_id=user_id, firstname=firstname, username=username,
+                            collection=collection)
                 logging.info(f"Added {update.effective_user.first_name} to the database")
         except Exception as e:
             logging.info(f"Could not add {chat_id} - {update.effective_user.first_name} to the database")
@@ -156,11 +154,13 @@ def send_message(bot: Bot, text: str, global_messages, message_id, user):
             xi_labs = xi_labs_api(message=bot_reply, chat_id=chat_id)
             if xi_labs is not None:
                 audio_file, output_filename = xi_labs
-                bot.send_voice(chat_id=chat_id, voice=audio_file, filename=output_filename, reply_to_message_id=message_id)
+                bot.send_voice(chat_id=chat_id, voice=audio_file, filename=output_filename,
+                               reply_to_message_id=message_id)
                 os.remove(output_filename)
             else:
                 logging.info("XI labs issue")
-                bot.send_message(chat_id=chat_id, text="Sorry, I cannot speak now. Change to /text mode.", reply_to_message_id=message_id)
+                bot.send_message(chat_id=chat_id, text="Sorry, I cannot speak now. Change to /text mode.",
+                                 reply_to_message_id=message_id)
 
     except Exception as e:
         logging.error(f"Could not update {user.firstname} message: {str(e)}")
@@ -170,22 +170,50 @@ def send_message(bot: Bot, text: str, global_messages, message_id, user):
 
 def voice(update: Update, context: CallbackContext):
     chat_id = update.effective_chat.id
-    user = Users.all_users.get(chat_id)
-    user.voiceMode = True
-    set_voice_mode(chat_id=chat_id, voice_mode=True, collection=collection)
-    update.message.reply_text(f"Switched to voice mode.")
+    if chat_id not in Users.all_users:
+        user = get_user_details(chat_id=chat_id, collection=collection, Users=Users)
+    else:
+        user = Users.all_users.get(chat_id)
+    if user is None:
+        update.message.reply_text(f"Please click here to /start")
+    else:
+        user.voiceMode = True
+        set_voice_mode(chat_id=chat_id, voice_mode=True, collection=collection)
+        update.message.reply_text(f"Switched to voice mode.")
 
 
 def text(update: Update, context: CallbackContext):
     chat_id = update.effective_chat.id
-    user = Users.all_users.get(chat_id)
-    user.voiceMode = False
-    set_voice_mode(chat_id=chat_id, voice_mode=False, collection=collection)
-    update.message.reply_text(f"Switched to text mode.")
+    if chat_id not in Users.all_users:
+        user = get_user_details(chat_id=chat_id, collection=collection, Users=Users)
+    else:
+        user = Users.all_users.get(chat_id)
+    if user is None:
+        update.message.reply_text(f"Please click here to /start")
+    else:
+        user.voiceMode = False
+        set_voice_mode(chat_id=chat_id, voice_mode=False, collection=collection)
+        update.message.reply_text(f"Switched to text mode.")
+
+
+def balance(update, context):
+    balance = get_user_balance(chat_id=update.effective_chat.id, collection=collection)
+    if balance is not None:
+        update.message.reply_text(f"Your account balance is Rs.{balance}")
+    else:
+        update.message.reply_text(f"Please click here to /start")
+
+
+def recharge(update, context):
+    logging.info("recharge")
 
 
 def error(update: Update, context: CallbackContext):
     logger.warning('Update "%s" caused error "%s"', update, context.error)
+
+
+def handle_consent_button(update: Update, context: CallbackContext):
+    threading.Thread(target=button_callback, args=(update, context,)).start()
 
 
 def handle_message(update: Update, context: CallbackContext) -> None:
@@ -194,3 +222,11 @@ def handle_message(update: Update, context: CallbackContext) -> None:
 
 def handle_voice(update: Update, context: CallbackContext) -> None:
     threading.Thread(target=voice_handler, args=(update, context,)).start()
+
+
+def handle_balance_enquiry(update: Update, context: CallbackContext):
+    threading.Thread(target=balance, args=(update, context,)).start()
+
+
+def handle_recharge(update: Update, context: CallbackContext):
+    threading.Thread(target=recharge, args=(update, context,)).start()

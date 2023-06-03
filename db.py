@@ -73,3 +73,12 @@ def set_voice_mode(chat_id, voice_mode, collection):
         return True
     else:
         return False
+
+
+def get_user_balance(chat_id, collection):
+    user_data = collection.find_one({'_id': chat_id})
+    if user_data:
+        balance = user_data.get('balance')
+        return balance
+    else:
+        return None
