@@ -5,7 +5,7 @@ class Users:
         self.user_id = user_id
         self.chat_id = chat_id
         self.firstname = firstname
-        self.userName = username
+        self.username = username
         self.consent = False
         self.messages = []
         self.balance = 0
@@ -13,6 +13,12 @@ class Users:
 
         # Add the new user to the class variable.
         Users.all_users[chat_id] = self
+
+    def get_voiceMode(self):
+        return self.voiceMode
+
+    def set_voiceMode(self, voiceMode):
+        self.voiceMode = voiceMode
 
     def get_consent(self):
         return self.consent

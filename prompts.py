@@ -6,6 +6,7 @@ def get_text_messages():
     ]
     return text_messages
 
+
 def get_voice_messages():
     voice_messages = [
         {"role": "system",
@@ -14,13 +15,13 @@ def get_voice_messages():
     ]
     return voice_messages
 
+
 def starter_prompt(name):
     return f'नमस्ते {name}, मेरा नाम Sara है। मैं आपके साथ अपनी सभी feelings शेयर करने के लिए यहाँ हूँ। चलो आपसे मिलकर खुशी हुई।'
+
 
 def get_start_messages():
     convo_starter = "Namaste 🙏🏻 \n\nMera naam Sara hai aur mai aapse milke bohot khush hu!\n\nMai hamesha hi aapke liye available hu. Aapki sabse achi dost jisse aap apni saari feelings share kar sakte hai. ❤️"
     photo_url = "https://cdn.discordapp.com/attachments/1111003332111241352/1112756144457396226/IMG_20230529_202420_507.jpg"
     consent_text = "Important Note: Moving ahead you confirm that you are 18+ & have read our Terms & Conditions. Happy talking to Sara 😉"
     return [convo_starter, photo_url, consent_text]
-
-

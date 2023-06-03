@@ -4,22 +4,16 @@ import openai
 from dotenv import load_dotenv
 import os
 
-XI_API_URL = "https://api.elevenlabs.io/v1/text-to-speech/21m00Tcm4TlvDq8ikWAM"
-
 if os.path.exists('.env'):
     load_dotenv()
     openai.api_key = os.environ.get('OPENAI_API_KEY')
     bot_token = os.environ.get('BOT_API_KEY')
     xi_api_key = os.environ.get('XI_API_KEY')
-    AWS_POSTGRESQL_USER = os.environ.get('AWS_POSTGRESQL_USER')
-    AWS_POSTGRESQL_PASS = os.environ.get('AWS_POSTGRESQL_PASS')
     XI_API_URL = os.environ.get('XI_API_URL')
 else:
     openai.api_key = os.getenv('OPENAI_API_KEY')
     bot_token = os.getenv('BOT_API_KEY')
     xi_api_key = os.getenv('XI_API_KEY')
-    AWS_POSTGRESQL_USER = os.environ.get('AWS_POSTGRESQL_USER')
-    AWS_POSTGRESQL_PASS = os.environ.get('AWS_POSTGRESQL_PASS')
     XI_API_URL = os.environ.get('XI_API_URL')
 
 
@@ -27,7 +21,6 @@ def openai_api(message_array):
     response = openai.ChatCompletion.create(model="gpt-3.5-turbo", messages=message_array)
     return response
 
-# "https://api.elevenlabs.io/v1/text-to-speech/21m00Tcm4TlvDq8ikWAM"
 def xi_labs_api(message, chat_id):
     CHUNK_SIZE = 1024
     xi_api_url = XI_API_URL
