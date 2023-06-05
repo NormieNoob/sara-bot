@@ -34,9 +34,7 @@ def create_payment_request(amount, transaction_id, user_id, vpa):
 def send_payment_request(encoded_payload):
     url = "https://api-preprod.phonepe.com/apis/merchant-simulator/pg/v1/pay"
 
-    concat_string = f"{encoded_payload}/pg/v1/pay{salt_key}"
-    sha256_hash = hashlib.sha256(concat_string.encode()).hexdigest()
-    x_verify = f"{sha256_hash}###{salt_index}"
+    x_verify = hashlib.sha256((encoded_payload + "/pg/v1/pay" + salt_key).encode()).hexdigest() + "###" + "1"
     headers = {
         "accept": "application/json",
         "Content-Type": "application/json",
