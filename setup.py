@@ -1,6 +1,6 @@
 import logging
 import threading
-from telegram.ext import CallbackContext
+from telegram.ext import CallbackContext, ConversationHandler, CommandHandler, MessageHandler, Filters
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update, Bot, ChatAction, User
 import os
 from googletrans import Translator
@@ -10,6 +10,8 @@ from api import xi_labs_api, openai_api
 import openai
 from Users import Users
 from db import db_connection, create_user, get_voice_mode, set_voice_mode, get_user_details, get_user_balance
+from payments import create_payment_request, send_payment_request, handle_api_response
+import uuid
 
 # Global database connection object
 collection = db_connection()
@@ -205,7 +207,60 @@ def balance(update, context):
 
 
 def recharge(update, context):
-    logging.info("recharge")
+    text = "Enter Amount you want to deposit in Rupees.\n\nIf you want to deposit Rs.500 then only enter 500.\n\n\nPlease Note that you'll be charged Rs.100 per a minute of voice message."
+    context.bot.send_message(chat_id=update.effective_chat.id, text=text)
+    return UPID_STATE
+
+
+def handle_amount(update, context):
+    amount = update.message.text
+    context.chat_data['amount'] = amount
+    context.bot.send_message(chat_id=update.effective_chat.id, text="Enter the upi id")
+    return UPID_STATE
+
+
+def handle_upi_id(update, context):
+    upi_id = update.message.text
+    chat_id = update.message.chat_id
+    amount = "100"
+    transaction_id = str(uuid.uuid4())
+    payload = create_payment_request(amount=amount, transaction_id=transaction_id, user_id=chat_id, vpa=upi_id)
+    print(f"Payment initiated for the user {chat_id} & the transaction_id - {transaction_id} for the Amount - {amount}")
+    response = send_payment_request(payload)
+    print(response)
+    payment_status = handle_api_response(response)
+    print(payment_status)
+    if payment_status is None:
+        context.bot.send_message(chat_id=chat_id, text="Payment Failed")
+    else:
+        context.bot.send_message(chat_id=chat_id, text=f"Recharge successful.\n\nTransaction Id - {payment_status}")
+    return ConversationHandler.END
+
+
+def cancel(update, context):
+    context.bot.send_message(chat_id=update.effective_chat.id, text="Recharge canceled.")
+    return ConversationHandler.END
+
+
+UPID_STATE = 1
+AMOUNT_STATE = 2
+
+
+def payment_handlers(dispatcher):
+    conv_handler = ConversationHandler(
+        entry_points=[CommandHandler('recharge', recharge)],
+        states={
+            # AMOUNT_STATE: [MessageHandler(Filters.text, handle_amount)],
+            UPID_STATE: [MessageHandler(Filters.text, handle_upi_id)],
+        },
+        fallbacks=[CommandHandler('cancel', cancel)]
+    )
+
+    dispatcher.add_handler(conv_handler)
+
+
+# def payment_handlers(dispatcher):
+#     threading.Thread(target=handle_payments, args=(dispatcher,)).start()
 
 
 def error(update: Update, context: CallbackContext):
