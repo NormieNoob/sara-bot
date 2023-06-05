@@ -233,7 +233,7 @@ def handle_upi_id(update, context):
     if payment_status is None:
         context.bot.send_message(chat_id=chat_id, text="Payment Failed")
     else:
-        context.bot.send_message(chat_id=chat_id, text=f"Recharge successful.\n\nTransaction Id - {payment_status}")
+        context.bot.send_message(chat_id=chat_id, text=f"Payment Initiated.\n Please open your UPI app & proceed to pay.\n\nTransaction Id - {payment_status}")
     return ConversationHandler.END
 
 
